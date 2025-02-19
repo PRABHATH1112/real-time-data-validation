@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>Real-Time Sensor Data</h2>
+    <canvas id="sensorChart"></canvas>
+
+    <script>
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Sensor Value',
+                    data: [],
+                    borderColor: 'blue',
+                    borderWidth: 2,
+                    fill: false,
+                    pointBackgroundColor: []
+                }]
+            },
+            options: {
+                scales: {
+                    x: { display: true },
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        function updateChart() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    const timeLabel = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    sensorChart.data.labels.push(timeLabel);
+                    sensorChart.data.datasets[0].data.push(data.value);
+                    sensorChart.data.datasets[0].pointBackgroundColor.push(data.is_anomaly ? 'red' : 'blue');
+
+                    if (sensorChart.data.labels.length > 10) {
+                        sensorChart.data.labels.shift();
+                        sensorChart.data.datasets[0].data.shift();
+                        sensorChart.data.datasets[0].pointBackgroundColor.shift();
+                    }
+
+                    sensorChart.update();
+
+                    // Show alert if anomaly detected
+                    if (data.is_anomaly) {
+                        alert(`🚨 Anomaly Detected! Sensor: ${data.sensor_id}, Value: ${data.value}`);
+                    }
+                });
+        }
+
+        setInterval(updateChart, 1000);
+    </script>
+</body>
+</html>
